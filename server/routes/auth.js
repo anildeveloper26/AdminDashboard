@@ -19,8 +19,7 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ error: 'Email already exists' });
     }
 
-    const user = new User({ username, email, password });
-    await user.save();
+    const user = new User({ username, email, password }).save();
 
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'your-secret-key', { expiresIn: '1h' });
     res.status(201).json({ token, user: { _id: user._id, username, email, role: user.role } });

@@ -1,9 +1,11 @@
+// server/index.js
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import authRoutes from './routes/auth.js';
 import usersRoutes from './routes/users.js';
+import activitiesRoutes from './routes/activities.js'; // Add this
 
 dotenv.config();
 
@@ -13,10 +15,11 @@ app.use(express.json());
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/api/activities', activitiesRoutes); // Add this
 
 const PORT = process.env.PORT || 5000;
 
-mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://anilkumarbobba2626:Anilkumar%401@cluster0.knp3r.mongodb.net/myDatabase?retryWrites=true&w=majority')
+mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://your-mongodb-uri')
   .then(() => console.log('Connected to MongoDB'))
   .catch(err => console.error('MongoDB connection error:', err));
 

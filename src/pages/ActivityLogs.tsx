@@ -1,6 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Calendar, User } from 'lucide-react';
 import { format } from 'date-fns';
+import axios from 'axios';
+
+interface ActivityLog {
+  _id: string;
+  userId: string;
+  action: string;
+  details: string;
+  timestamp: string;
+}
 
 function ActivityLogs() {
   const [filters, setFilters] = useState({
@@ -8,103 +17,132 @@ function ActivityLogs() {
     startDate: '',
     endDate: '',
   });
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [loading, setLoading] = useState(true); // Load initially
+  const [error, setError] = useState<string | null>(null);
 
-  // Static dummy data for activity logs
-  const dummyLogs= [
-    {
-      _id: '1',
-      userId: 'user123',
-      action: 'login',
-      details: 'User logged in successfully',
-      timestamp: '2025-03-01T10:00:00Z',
-    },
-    {
-      _id: '2',
-      userId: 'user456',
-      action: 'user_created',
-      details: 'Created new user: test@example.com',
-      timestamp: '2025-03-02T14:30:00Z',
-    },
-    {
-      _id: '3',
-      userId: 'user123',
-      action: 'logout',
-      details: 'User logged out',
-      timestamp: '2025-03-03T09:15:00Z',
-    },
-    {
-      _id: '4',
-      userId: 'user789',
-      action: 'profile_updated',
-      details: 'Updated phone number',
-      timestamp: '2025-03-04T16:45:00Z',
-    },
-    {
-      _id: '5',
-      userId: 'user456',
-      action: 'login_failed',
-      details: 'Incorrect password',
-      timestamp: '2025-03-05T12:00:00Z',
-    },
-  ];
-
-  // Filter logs locally based on user input
-  const filteredLogs = dummyLogs.filter((log) => {
-    const logDate = new Date(log.timestamp);
-    const startDate = filters.startDate ? new Date(filters.startDate) : null;
-    const endDate = filters.endDate ? new Date(filters.endDate) : null;
-
-    return (
-      (!filters.userId || log.userId.toLowerCase().includes(filters.userId.toLowerCase())) &&
-      (!startDate || logDate >= startDate) &&
-      (!endDate || logDate <= endDate)
-    );
+  // API instance
+  const api = axios.create({
+    baseURL: 'http://localhost:5000/api',
+    headers: { 'Content-Type': 'application/json' },
   });
 
+  api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  });
+
+  // Fetch all activity logs on initial load
+  useEffect(() => {
+    const fetchAllLogs = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await api.get('/activities'); // No filters initially
+        setLogs(response.data);
+      } catch (err: any) {
+        setError(err.response?.data?.error || 'Failed to fetch activity logs');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllLogs();
+  }, []); // Empty dependency array to run only on mount
+
+  // Fetch filtered activity logs on submit
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const params = {
+        userId: filters.userId || undefined,
+        startDate: filters.startDate || undefined,
+        endDate: filters.endDate || undefined,
+      };
+      const response = await api.get('/activities', { params });
+      setLogs(response.data);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to fetch activity logs');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 flex items-center justify-center h-full">
+        <div className="text-gray-500">Loading activity logs...</div>
+      </div>
+    );
+  }
+
   return (
-    <div>
+    <div className="p-6">
       <h1 className="text-2xl font-bold text-gray-800 mb-6">Activity Logs</h1>
 
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{error}</div>
+      )}
+
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">User</label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                value={filters.userId}
-                onChange={(e) => setFilters({ ...filters, userId: e.target.value })}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Filter by user ID"
-              />
+        <form onSubmit={handleSubmit}>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">User</label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  value={filters.userId}
+                  onChange={(e) => setFilters({ ...filters, userId: e.target.value })}
+                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Filter by user ID"
+                  disabled={loading}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loading}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                  className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={loading}
+                />
+              </div>
             </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="date"
-                value={filters.startDate}
-                onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+          <div className="mt-4 flex justify-end">
+            <button
+              type="submit"
+              className={`px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 ${
+                loading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              disabled={loading}
+            >
+              {loading ? 'Loading...' : 'Submit'}
+            </button>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
-            <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="date"
-                value={filters.endDate}
-                onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        </div>
+        </form>
       </div>
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
@@ -126,24 +164,32 @@ function ActivityLogs() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {filteredLogs.map((log) => (
-              <tr key={log._id}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {format(new Date(log.timestamp), 'MMM d, yyyy HH:mm:ss')}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {log.userId}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                    {log.action}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {log.details || 'No details'}
+            {logs.length > 0 ? (
+              logs.map((log) => (
+                <tr key={log._id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {format(new Date(log.timestamp), 'MMM d, yyyy HH:mm:ss')}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {log.userId}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                      {log.action}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-500">
+                    {log.details || 'No details'}
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                  No activity logs found
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
