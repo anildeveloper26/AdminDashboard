@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserPlus, Edit2, Power } from 'lucide-react';
+import axios from 'axios';
 import type { User } from '../types';
 
 function Users() {
@@ -11,71 +12,93 @@ function Users() {
     password: '', // Only for new users
     role: 'viewer' as 'admin' | 'editor' | 'viewer',
   });
+  const [usersList, setUsersList] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [fetchLoading, setFetchLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
 
-  // Static mock data
-  const [usersList, setUsersList] = useState<User[]>([
-    {
-      _id: '1',
-      username: 'admin1',
-      email: 'admin1@example.com',
-      role: 'admin',
-      isActive: true,
-      lastLogin: '2025-03-21T10:00:00Z',
-      createdAt: '2025-03-01T00:00:00Z',
-    },
-    {
-      _id: '2',
-      username: 'editor1',
-      email: 'editor1@example.com',
-      role: 'editor',
-      isActive: true,
-      lastLogin: '2025-03-20T15:30:00Z',
-      createdAt: '2025-03-01T00:00:00Z',
-    },
-    {
-      _id: '3',
-      username: 'viewer1',
-      email: 'viewer1@example.com',
-      role: 'viewer',
-      isActive: false,
-      lastLogin: '2025-03-19T09:15:00Z',
-      createdAt: '2025-03-01T00:00:00Z',
-    },
-  ]);
+  // API instance
+  const api = axios.create({
+    baseURL: 'http://localhost:5000/api',
+    headers: { 'Content-Type': 'application/json' },
+  });
 
-  const handleToggleStatus = (userId: string) => {
-    setUsersList((prevUsers) =>
-      prevUsers.map((user) =>
-        user._id === userId ? { ...user, isActive: !user.isActive } : user
-      )
-    );
+  api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  });
+
+  // Fetch users
+  const fetchUsers = async () => {
+    setFetchLoading(true);
+    setError(null);
+    try {
+      const response = await api.get('/users');
+      setUsersList(response.data);
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to fetch users');
+    } finally {
+      setFetchLoading(false);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const handleToggleStatus = async (userId: string) => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      await api.patch(`/users/${userId}/toggle-status`);
+      await fetchUsers(); // Refetch to ensure UI reflects the latest state
+      setSuccess('User status updated successfully');
+    } catch (err: any) {
+      setError(err.response?.data?.error || 'Failed to toggle status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    setLoading(true);
+
     if (selectedUser) {
       // Update existing user
-      setUsersList((prevUsers) =>
-        prevUsers.map((user) =>
-          user._id === selectedUser._id
-            ? { ...user, ...formData, lastLogin: user.lastLogin, createdAt: user.createdAt }
-            : user
-        )
-      );
+      try {
+        const response = await api.put(`/users/${selectedUser._id}`, {
+          username: formData.username,
+          email: formData.email,
+          role: formData.role,
+        });
+        await fetchUsers(); // Refetch to update the list
+        setSuccess('User updated successfully');
+      } catch (err: any) {
+        setError(err.response?.data?.error || 'Failed to update user');
+      }
     } else {
       // Create new user
-      const newUser: User = {
-        _id: String(usersList.length + 1), // Simple ID generation
-        username: formData.username,
-        email: formData.email,
-        password: formData.password, // In a real app, this would be hashed
-        role: formData.role,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        lastLogin: null
-      };
-      setUsersList((prevUsers) => [...prevUsers, newUser]);
+      try {
+        const response = await api.post('/users', {
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role,
+        });
+        await fetchUsers(); // Refetch to include the new user
+        setSuccess('User added successfully');
+      } catch (err: any) {
+        setError(err.response?.data?.error || 'Failed to add user');
+      }
     }
+
+    setLoading(false);
     setIsModalOpen(false);
     setFormData({ username: '', email: '', password: '', role: 'viewer' });
     setSelectedUser(null);
@@ -92,8 +115,16 @@ function Users() {
     setIsModalOpen(true);
   };
 
+  if (fetchLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center h-full">
+        <div className="text-gray-500">Loading users...</div>
+      </div>
+    );
+  }
+
   return (
-    <div>
+    <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Users</h1>
         <button
@@ -103,11 +134,18 @@ function Users() {
             setIsModalOpen(true);
           }}
           className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+          disabled={loading || fetchLoading}
         >
           <UserPlus className="w-5 h-5 mr-2" />
           Add User
         </button>
       </div>
+
+      {/* Success/Error Messages */}
+      {success && (
+        <div className="mb-4 p-3 bg-green-100 text-green-700 rounded-md">{success}</div>
+      )}
+      {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{error}</div>}
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
@@ -131,43 +169,53 @@ function Users() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {usersList.map((user) => (
-              <tr key={user._id}>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{user.username}</div>
-                  <div className="text-sm text-gray-500">{user.email}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.role}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <span
-                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {user.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <button
-                    onClick={() => handleEdit(user)}
-                    className="text-blue-600 hover:text-blue-900 mr-4"
-                  >
-                    <Edit2 className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleToggleStatus(user._id)}
-                    className={`${
-                      user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
-                    }`}
-                  >
-                    <Power className="w-5 h-5" />
-                  </button>
+            {usersList.length > 0 ? (
+              usersList.map((user) => (
+                <tr key={user._id}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900">{user.username}</div>
+                    <div className="text-sm text-gray-500">{user.email}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.role}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                        user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {user.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button
+                      onClick={() => handleEdit(user)}
+                      className="text-blue-600 hover:text-blue-900 mr-4"
+                      disabled={loading}
+                    >
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleToggleStatus(user._id)}
+                      className={`${
+                        user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
+                      }`}
+                      disabled={loading}
+                    >
+                      <Power className="w-5 h-5" />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
+                  No users found
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
@@ -186,8 +234,9 @@ function Users() {
                   type="text"
                   value={formData.username}
                   onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-100"
                   required
+                  disabled={loading}
                 />
               </div>
               <div className="mb-4">
@@ -196,8 +245,9 @@ function Users() {
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-100"
                   required
+                  disabled={loading}
                 />
               </div>
               {!selectedUser && (
@@ -207,8 +257,9 @@ function Users() {
                     type="password"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-100"
                     required
+                    disabled={loading}
                   />
                 </div>
               )}
@@ -219,7 +270,8 @@ function Users() {
                   onChange={(e) =>
                     setFormData({ ...formData, role: e.target.value as 'admin' | 'editor' | 'viewer' })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-100"
+                  disabled={loading}
                 >
                   <option value="admin">Admin</option>
                   <option value="editor">Editor</option>
@@ -230,15 +282,19 @@ function Users() {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="mr-2 px-4 py-2 text-gray-600 hover:text-gray-800"
+                  className="mr-2 px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50"
+                  disabled={loading}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  className={`px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 ${
+                    loading ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  disabled={loading}
                 >
-                  {selectedUser ? 'Update' : 'Create'}
+                  {loading ? 'Processing...' : selectedUser ? 'Update' : 'Create'}
                 </button>
               </div>
             </form>

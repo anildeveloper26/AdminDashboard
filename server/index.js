@@ -1,24 +1,18 @@
-// server/index.js
 import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import cors from 'cors'; // Add this import
+import cors from 'cors';
 import authRoutes from './routes/auth.js';
+import usersRoutes from './routes/users.js';
 
 dotenv.config();
 
 const app = express();
-
-// Enable CORS for http://localhost:5173
-app.use(cors({
-  origin: 'http://localhost:5173', // Allow only your frontend origin
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'], // Allowed methods
-  allowedHeaders: ['Content-Type', 'Authorization'], // Allowed headers
-}));
-
+app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
 
 const PORT = process.env.PORT || 5000;
 
