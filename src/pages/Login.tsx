@@ -19,7 +19,7 @@ function Login() {
       const response = await auth.login(email, password);
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
-      navigate('/dashboard');
+      navigate('/admin/dashboard');
     } catch (err) {
       setError('Invalid email or password');
     } finally {

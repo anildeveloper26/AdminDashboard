@@ -4,9 +4,10 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Clients';
 import ActivityLogs from './pages/ActivityLogs';
-import Messages from './pages/Messages'; // Import the new Messages component
-import Layout from './components/Layout'; // Admin layout
-import ClientLayout from './components/ClientLayout'; // Client layout
+import Messages from './pages/Messages';
+import Home from './pages/Home';
+import Layout from './components/Layout';
+import ClientLayout from './components/ClientLayout';
 import PrivateRoute from './components/PrivateRoute';
 import SignUp from './pages/SignUp';
 import ClientLogin from './pages/ClientLogin';
@@ -21,24 +22,23 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <Routes>
-          {/* Admin Routes */}
+          {/* Public Routes */}
+          <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignUp />} />
-
-          {/* Client Routes */}
           <Route path="/client/login" element={<ClientLogin />} />
           <Route path="/client/signup" element={<ClientSignup />} />
 
           {/* Admin Protected Routes */}
-          <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
+          <Route path="/admin" element={<PrivateRoute><Layout /></PrivateRoute>}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="users" element={<Users />} />
             <Route path="activity" element={<ActivityLogs />} />
-            <Route path="messages" element={<Messages />} /> {/* Added Messages route */}
+            <Route path="messages" element={<Messages />} />
           </Route>
 
-          {/* Client Protected Route */}
+          {/* Client Protected Routes */}
           <Route path="/client" element={<PrivateRoute><ClientLayout /></PrivateRoute>}>
             <Route index element={<Navigate to="/client/dashboard" replace />} />
             <Route path="dashboard" element={<ClientDashboard />} />

@@ -1,8 +1,8 @@
 // src/pages/NotFound.tsx
-import React from 'react';
 import { Link } from 'react-router-dom';
 
 function NotFound() {
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-center">
       <div className="bg-white p-8 rounded-lg shadow-md text-center">
