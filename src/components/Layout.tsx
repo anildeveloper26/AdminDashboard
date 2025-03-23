@@ -1,104 +1,76 @@
-import { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Activity, LogOut, Menu, X } from 'lucide-react';
+import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Home, Users, Activity, MessageSquare } from 'lucide-react'; // Added MessageSquare icon
 
 function Layout() {
-  const navigate = useNavigate();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // For mobile toggle
-
-  const handleLogout = () => {
-    navigate('/login');
-  };
-
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
+  const location = useLocation();
 
   return (
-    <div className="h-dvh bg-gray-100 flex">
-      {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
-          <h1 className="text-2xl font-bold text-gray-800">Admin Panel</h1>
-          <button className="lg:hidden text-gray-600" onClick={toggleSidebar}>
-            <X className="w-6 h-6" />
-          </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 flex overflow-hidden">
+      {/* Admin Navigation Bar */}
+      <nav className="w-64 bg-white shadow-lg flex-shrink-0 h-screen fixed top-0 left-0 transform transition-all duration-300 ease-in-out z-10">
+        <div className="p-6 bg-gradient-to-r from-indigo-600 to-blue-500 text-white rounded-br-lg shadow-md">
+          <h2 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
+            <span className="bg-white text-indigo-600 p-1 rounded-full w-8 h-8 flex items-center justify-center">A</span>
+            Admin Panel
+          </h2>
         </div>
-        <nav className="mt-6">
-          <NavLink
-            to="/dashboard"
-            className={({ isActive }) =>
-              `flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 transition-colors duration-200 ${
-                isActive ? 'bg-indigo-100 text-indigo-700 font-semibold' : ''
-              }`
-            }
-          >
-            <LayoutDashboard className="w-5 h-5 mr-3" />
-            Dashboard
-          </NavLink>
-          <NavLink
-            to="/users"
-            className={({ isActive }) =>
-              `flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 transition-colors duration-200 ${
-                isActive ? 'bg-indigo-100 text-indigo-700 font-semibold' : ''
-              }`
-            }
-          >
-            <Users className="w-5 h-5 mr-3" />
-            Users
-          </NavLink>
-          <NavLink
-            to="/activity"
-            className={({ isActive }) =>
-              `flex items-center px-6 py-3 text-gray-700 hover:bg-indigo-50 transition-colors duration-200 ${
-                isActive ? 'bg-indigo-100 text-indigo-700 font-semibold' : ''
-              }`
-            }
-          >
-            <Activity className="w-5 h-5 mr-3" />
-            Activity Logs
-          </NavLink>
-        </nav>
-        <div className="absolute bottom-0 w-full p-6 border-t border-gray-200">
-          <button
-            onClick={handleLogout}
-            className="flex items-center w-full text-gray-700 hover:text-red-600 transition-colors duration-200"
-          >
-            <LogOut className="w-5 h-5 mr-3" />
-            Logout
-          </button>
+        <ul className="space-y-1 p-4">
+          <li>
+            <Link
+              to="/dashboard"
+              className={`flex items-center gap-3 p-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors duration-200 ${
+                location.pathname === '/dashboard' ? 'bg-indigo-100 text-indigo-700 font-semibold shadow-sm' : ''
+              }`}
+            >
+              <Home className="w-5 h-5 text-indigo-500" />
+              <span className="text-sm font-medium">Dashboard</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/users"
+              className={`flex items-center gap-3 p-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors duration-200 ${
+                location.pathname === '/users' ? 'bg-indigo-100 text-indigo-700 font-semibold shadow-sm' : ''
+              }`}
+            >
+              <Users className="w-5 h-5 text-indigo-500" />
+              <span className="text-sm font-medium">Clients</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/activity"
+              className={`flex items-center gap-3 p-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors duration-200 ${
+                location.pathname === '/activity' ? 'bg-indigo-100 text-indigo-700 font-semibold shadow-sm' : ''
+              }`}
+            >
+              <Activity className="w-5 h-5 text-indigo-500" />
+              <span className="text-sm font-medium">Activity Logs</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              to="/messages"
+              className={`flex items-center gap-3 p-3 rounded-lg text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors duration-200 ${
+                location.pathname === '/messages' ? 'bg-indigo-100 text-indigo-700 font-semibold shadow-sm' : ''
+              }`}
+            >
+              <MessageSquare className="w-5 h-5 text-indigo-500" />
+              <span className="text-sm font-medium">Messages</span>
+            </Link>
+          </li>
+        </ul>
+        <div className="absolute bottom-0 w-full p-4 border-t border-gray-200">
+          <p className="text-xs text-gray-500 text-center">© 2025 xAI Admin</p>
         </div>
-      </aside>
-
-      {/* Mobile Overlay */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={toggleSidebar}
-        />
-      )}
+      </nav>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col ">
-        {/* Header with Toggle Button */}
-        <header className="flex items-center justify-between p-4 bg-white shadow-md lg:hidden">
-          <h2 className="text-xl font-semibold text-gray-800">Admin</h2>
-          <button onClick={toggleSidebar} className="text-gray-600">
-            <Menu className="w-6 h-6" />
-          </button>
-        </header>
-
-        {/* Scrollable Outlet */}
-        <main className="flex-1 p-8 overflow-y-auto bg-gradient-to-br from-gray-50 to-gray-100">
-          <div className="max-w-7xl mx-auto">
-            <Outlet />
-          </div>
-        </main>
-      </div>
+      <main className="flex-1 p-8 ml-64 bg-gray-50 overflow-y-auto">
+        <div className="max-w-7xl mx-auto">
+          <Outlet />
+        </div>
+      </main>
     </div>
   );
 }

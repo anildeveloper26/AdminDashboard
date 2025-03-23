@@ -1,18 +1,28 @@
 import { useState, useEffect } from 'react';
 import { UserPlus, Edit2, Power } from 'lucide-react';
 import axios from 'axios';
-import type { User } from '../types';
+import type { User } from '../types'; // Assuming User type matches Client model
 
-function Users() {
+// Update type to reflect Client model (no role field for editing)
+interface Client {
+  _id: string;
+  username: string;
+  email: string;
+  isActive: boolean;
+  lastLogin?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+function Clients() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null); // Changed from User to Client
   const [formData, setFormData] = useState({
     username: '',
     email: '',
-    password: '', // Only for new users
-    role: 'viewer' as 'admin' | 'editor' | 'viewer',
+    password: '', // Only for new clients
   });
-  const [usersList, setUsersList] = useState<User[]>([]);
+  const [clientsList, setClientsList] = useState<Client[]>([]); // Changed from usersList
   const [loading, setLoading] = useState(false);
   const [fetchLoading, setFetchLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -25,37 +35,37 @@ function Users() {
   });
 
   api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token'); // Admin token
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   });
 
-  // Fetch users
-  const fetchUsers = async () => {
+  // Fetch clients
+  const fetchClients = async () => {
     setFetchLoading(true);
     setError(null);
     try {
-      const response = await api.get('/users');
-      setUsersList(response.data);
+      const response = await api.get('/clients'); // Updated to /clients
+      setClientsList(response.data);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch users');
+      setError(err.response?.data?.error || 'Failed to fetch clients');
     } finally {
       setFetchLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchUsers();
+    fetchClients();
   }, []);
 
-  const handleToggleStatus = async (userId: string) => {
+  const handleToggleStatus = async (clientId: string) => { // Changed from userId
     setLoading(true);
     setError(null);
     setSuccess(null);
     try {
-      await api.patch(`/users/${userId}/toggle-status`);
-      await fetchUsers(); // Refetch to ensure UI reflects the latest state
-      setSuccess('User status updated successfully');
+      await api.patch(`/clients/${clientId}/toggle-status`); // Updated to /clients
+      await fetchClients(); // Refetch to update UI
+      setSuccess('Client status updated successfully');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Failed to toggle status');
     } finally {
@@ -69,48 +79,45 @@ function Users() {
     setSuccess(null);
     setLoading(true);
 
-    if (selectedUser) {
-      // Update existing user
+    if (selectedClient) {
+      // Update existing client
       try {
-        const response = await api.put(`/users/${selectedUser._id}`, {
+        const response = await api.put(`/clients/${selectedClient._id}`, { // Updated to /clients
           username: formData.username,
           email: formData.email,
-          role: formData.role,
         });
-        await fetchUsers(); // Refetch to update the list
-        setSuccess('User updated successfully');
+        await fetchClients(); // Refetch to update the list
+        setSuccess('Client updated successfully');
       } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to update user');
+        setError(err.response?.data?.error || 'Failed to update client');
       }
     } else {
-      // Create new user
+      // Create new client
       try {
-        const response = await api.post('/users', {
+        const response = await api.post('/clients', { // Updated to /clients
           username: formData.username,
           email: formData.email,
           password: formData.password,
-          role: formData.role,
         });
-        await fetchUsers(); // Refetch to include the new user
-        setSuccess('User added successfully');
+        await fetchClients(); // Refetch to include the new client
+        setSuccess('Client added successfully');
       } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to add user');
+        setError(err.response?.data?.error || 'Failed to add client');
       }
     }
 
     setLoading(false);
     setIsModalOpen(false);
-    setFormData({ username: '', email: '', password: '', role: 'viewer' });
-    setSelectedUser(null);
+    setFormData({ username: '', email: '', password: '' }); // Removed role
+    setSelectedClient(null);
   };
 
-  const handleEdit = (user: User) => {
-    setSelectedUser(user);
+  const handleEdit = (client: Client) => { // Changed from User to Client
+    setSelectedClient(client);
     setFormData({
-      username: user.username,
-      email: user.email,
-      password: '', // Don't prefill password for edits
-      role: user.role,
+      username: client.username,
+      email: client.email,
+      password: '', // Don’t prefill password for edits
     });
     setIsModalOpen(true);
   };
@@ -118,7 +125,7 @@ function Users() {
   if (fetchLoading) {
     return (
       <div className="p-6 flex items-center justify-center h-full">
-        <div className="text-gray-500">Loading users...</div>
+        <div className="text-gray-500">Loading clients...</div>
       </div>
     );
   }
@@ -126,18 +133,18 @@ function Users() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Users</h1>
+        <h1 className="text-2xl font-bold text-gray-800">Clients</h1>
         <button
           onClick={() => {
-            setSelectedUser(null);
-            setFormData({ username: '', email: '', password: '', role: 'viewer' });
+            setSelectedClient(null);
+            setFormData({ username: '', email: '', password: '' }); // Removed role
             setIsModalOpen(true);
           }}
           className="flex items-center bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
           disabled={loading || fetchLoading}
         >
           <UserPlus className="w-5 h-5 mr-2" />
-          Add User
+          Add Client
         </button>
       </div>
 
@@ -152,10 +159,7 @@ function Users() {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                User
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Role
+                Client
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
@@ -169,38 +173,37 @@ function Users() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {usersList.length > 0 ? (
-              usersList.map((user) => (
-                <tr key={user._id}>
+            {clientsList.length > 0 ? (
+              clientsList.map((client) => (
+                <tr key={client._id}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{user.username}</div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
+                    <div className="text-sm font-medium text-gray-900">{client.username}</div>
+                    <div className="text-sm text-gray-500">{client.email}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.role}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        client.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}
                     >
-                      {user.isActive ? 'Active' : 'Inactive'}
+                      {client.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}
+                    {client.lastLogin ? new Date(client.lastLogin).toLocaleString() : 'Never'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
-                      onClick={() => handleEdit(user)}
+                      onClick={() => handleEdit(client)}
                       className="text-blue-600 hover:text-blue-900 mr-4"
                       disabled={loading}
                     >
                       <Edit2 className="w-5 h-5" />
                     </button>
                     <button
-                      onClick={() => handleToggleStatus(user._id)}
+                      onClick={() => handleToggleStatus(client._id)}
                       className={`${
-                        user.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
+                        client.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
                       }`}
                       disabled={loading}
                     >
@@ -211,8 +214,8 @@ function Users() {
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
-                  No users found
+                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                  No clients found
                 </td>
               </tr>
             )}
@@ -220,12 +223,12 @@ function Users() {
         </table>
       </div>
 
-      {/* Modal for Create/Edit User */}
+      {/* Modal for Create/Edit Client */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
           <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">
-              {selectedUser ? 'Edit User' : 'Add New User'}
+              {selectedClient ? 'Edit Client' : 'Add New Client'}
             </h2>
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
@@ -250,7 +253,7 @@ function Users() {
                   disabled={loading}
                 />
               </div>
-              {!selectedUser && (
+              {!selectedClient && (
                 <div className="mb-4">
                   <label className="block text-gray-700 text-sm font-medium mb-2">Password</label>
                   <input
@@ -263,21 +266,6 @@ function Users() {
                   />
                 </div>
               )}
-              <div className="mb-4">
-                <label className="block text-gray-700 text-sm font-medium mb-2">Role</label>
-                <select
-                  value={formData.role}
-                  onChange={(e) =>
-                    setFormData({ ...formData, role: e.target.value as 'admin' | 'editor' | 'viewer' })
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md disabled:bg-gray-100"
-                  disabled={loading}
-                >
-                  <option value="admin">Admin</option>
-                  <option value="editor">Editor</option>
-                  <option value="viewer">Viewer</option>
-                </select>
-              </div>
               <div className="flex justify-end">
                 <button
                   type="button"
@@ -294,7 +282,7 @@ function Users() {
                   }`}
                   disabled={loading}
                 >
-                  {loading ? 'Processing...' : selectedUser ? 'Update' : 'Create'}
+                  {loading ? 'Processing...' : selectedClient ? 'Update' : 'Create'}
                 </button>
               </div>
             </form>
@@ -305,4 +293,4 @@ function Users() {
   );
 }
 
-export default Users;
+export default Clients;

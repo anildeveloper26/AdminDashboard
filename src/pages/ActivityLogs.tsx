@@ -1,3 +1,4 @@
+// src/pages/ActivityLogs.tsx
 import { useState, useEffect } from 'react';
 import { Calendar, User } from 'lucide-react';
 import { format } from 'date-fns';
@@ -5,20 +6,20 @@ import axios from 'axios';
 
 interface ActivityLog {
   _id: string;
-  userId: string;
+  clientId: string; // Changed from userId to clientId
+  username: string; // Included for display
   action: string;
-  details: string;
   timestamp: string;
 }
 
 function ActivityLogs() {
   const [filters, setFilters] = useState({
-    userId: '',
+    clientId: '', // Changed from userId to clientId
     startDate: '',
     endDate: '',
   });
   const [logs, setLogs] = useState<ActivityLog[]>([]);
-  const [loading, setLoading] = useState(true); // Load initially
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // API instance
@@ -28,44 +29,44 @@ function ActivityLogs() {
   });
 
   api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token'); // Admin token for admin panel
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
   });
 
-  // Fetch all activity logs on initial load
+  // Fetch all client activity logs on initial load
   useEffect(() => {
-    const fetchAllLogs = async () => {
+    const fetchClientActivities = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await api.get('/activities'); // No filters initially
+        const response = await api.get('/activities'); // Use /activities endpoint
         setLogs(response.data);
       } catch (err: any) {
-        setError(err.response?.data?.error || 'Failed to fetch activity logs');
+        setError(err.response?.data?.error || 'Failed to fetch client activities');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAllLogs();
-  }, []); // Empty dependency array to run only on mount
+    fetchClientActivities();
+  }, []);
 
-  // Fetch filtered activity logs on submit
+  // Fetch filtered client activity logs on submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
       const params = {
-        userId: filters.userId || undefined,
+        clientId: filters.clientId || undefined, // Changed from userId
         startDate: filters.startDate || undefined,
         endDate: filters.endDate || undefined,
       };
-      const response = await api.get('/activities', { params });
+      const response = await api.get('/activities', { params }); // Use /activities endpoint
       setLogs(response.data);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to fetch activity logs');
+      setError(err.response?.data?.error || 'Failed to fetch client activities');
     } finally {
       setLoading(false);
     }
@@ -74,14 +75,14 @@ function ActivityLogs() {
   if (loading) {
     return (
       <div className="p-6 flex items-center justify-center h-full">
-        <div className="text-gray-500">Loading activity logs...</div>
+        <div className="text-gray-500">Loading client activities...</div>
       </div>
     );
   }
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">Activity Logs</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-6">Client Activity Logs</h1>
 
       {error && (
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-md">{error}</div>
@@ -91,15 +92,15 @@ function ActivityLogs() {
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">User</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Client</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  value={filters.userId}
-                  onChange={(e) => setFilters({ ...filters, userId: e.target.value })}
+                  value={filters.clientId}
+                  onChange={(e) => setFilters({ ...filters, clientId: e.target.value })}
                   className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Filter by user ID"
+                  placeholder="Filter by client ID"
                   disabled={loading}
                 />
               </div>
@@ -153,13 +154,10 @@ function ActivityLogs() {
                 Timestamp
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                User
+                Client
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Action
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Details
               </th>
             </tr>
           </thead>
@@ -171,22 +169,19 @@ function ActivityLogs() {
                     {format(new Date(log.timestamp), 'MMM d, yyyy HH:mm:ss')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {log.userId}
+                    {log.username} ({log.clientId})
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
                       {log.action}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {log.details || 'No details'}
-                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
-                  No activity logs found
+                <td colSpan={3} className="px-6 py-4 text-center text-gray-500">
+                  No client activity logs found
                 </td>
               </tr>
             )}

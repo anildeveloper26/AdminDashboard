@@ -4,8 +4,9 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import authRoutes from './routes/auth.js';
-import usersRoutes from './routes/users.js';
-import activitiesRoutes from './routes/activities.js'; // Add this
+import clientsRoutes from './routes/clients.js'; // Updated from users.js
+import activitiesRoutes from './routes/activities.js';
+import messagesRoutes from './routes/messages.js';
 
 dotenv.config();
 
@@ -14,8 +15,9 @@ app.use(cors({ origin: 'http://localhost:5173' }));
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/activities', activitiesRoutes); // Add this
+app.use('/api/clients', clientsRoutes); // Updated from /api/users
+app.use('/api/activities', activitiesRoutes);
+app.use('/api/messages', messagesRoutes);
 
 const PORT = process.env.PORT || 5000;
 

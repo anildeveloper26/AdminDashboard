@@ -13,3 +13,10 @@ export interface AuthResponse {
   token: string;
   user: Partial<User>;
 }
+
+// src/types.ts
+export interface User {
+  _id: string;
+  username: string;
+  email: string;
+} 
