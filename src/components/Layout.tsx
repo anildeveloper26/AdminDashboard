@@ -77,7 +77,7 @@ function Layout() {
           </li>
         </ul>
         <div className="absolute bottom-0 w-full p-4 border-t border-gray-200">
-          <p className="text-xs text-gray-500 text-center">© 2025 xAI Admin</p>
+          <p className="text-xs text-gray-500 text-center">© 2025 Admin Anil </p>
         </div>
       </nav>
 

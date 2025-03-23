@@ -8,7 +8,7 @@ function Home() {
       <header className="bg-gradient-to-r from-indigo-600 to-blue-500 text-white py-12 md:py-20 flex-grow flex items-center">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight mb-4">
-            Welcome to Sandee Portal
+            Welcome to Anil's Portal
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl text-indigo-100 mb-8">
             Seamless access for Admins and Clients
@@ -74,7 +74,7 @@ function Home() {
       {/* Footer */}
       <footer className="bg-gray-800 text-white py-4">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm">© 2025 xAI Portal. All rights reserved.</p>
+          <p className="text-sm">© 2025 Anil's Portal. All rights reserved.</p>
         </div>
       </footer>
     </div>

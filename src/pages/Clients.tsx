@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { UserPlus, Edit2, Power } from 'lucide-react';
 import axios from 'axios';
-import type { User } from '../types'; // Assuming User type matches Client model
 
 // Update type to reflect Client model (no role field for editing)
 interface Client {
@@ -86,6 +85,7 @@ function Clients() {
           username: formData.username,
           email: formData.email,
         });
+        console.log(response.data); // Use the response data
         await fetchClients(); // Refetch to update the list
         setSuccess('Client updated successfully');
       } catch (err: any) {
@@ -94,7 +94,7 @@ function Clients() {
     } else {
       // Create new client
       try {
-        const response = await api.post('/clients', { // Updated to /clients
+        await api.post('/clients', { // Updated to /clients
           username: formData.username,
           email: formData.email,
           password: formData.password,
